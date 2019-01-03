@@ -1,4 +1,4 @@
-;;; init.el --- Baptiste Dupuch init file            -*- lexical-binding: t; -*-
+ ;;; init.el --- Baptiste Dupuch init file            -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Baptiste Dupuch
 
@@ -20,7 +20,7 @@
 
 ;;; Commentary:
 
-;; 
+;;
 
 ;;; Code:
 
@@ -293,9 +293,226 @@ Start `ielm' if it's not already running."
   :config
   (setq avy-background t))
 
+(use-package git-timemachine
+  :ensure t
+  :bind (("s-g" . git-timemachine)))
+
+(use-package ag
+  :ensure t)
+
+(use-package projectile
+  :ensure t
+  :init
+  (setq projectile-completion-system 'ivy)
+  :config
+  (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (projectile-mode +1))
+
+(use-package expand-region
+  :ensure t
+  :bind ("C-=" . er/expand-region))
+
+(use-package elisp-slime-nav
+  :ensure t
+  :config
+  (dolist (hook '(emacs-lisp-mode-hook ielm-mode-hook))
+    (add-hook hook #'elisp-slime-nav-mode)))
+
+(use-package paredit
+  :ensure t
+  :config
+  (add-hook 'emacs-lisp-mode-hook #'paredit-mode)
+  ;; enable in the *scratch* buffer
+  (add-hook 'lisp-interaction-mode-hook #'paredit-mode)
+  (add-hook 'ielm-mode-hook #'paredit-mode)
+  (add-hook 'lisp-mode-hook #'paredit-mode)
+  (add-hook 'eval-expression-minibuffer-setup-hook #'paredit-mode))
+
+(use-package anzu
+  :ensure t
+  :bind (("M-%" . anzu-query-replace)
+         ("C-M-%" . anzu-query-replace-regexp))
+  :config
+  (global-anzu-mode))
+
+;; used to have all cmd from shell set correctly
+(use-package exec-path-from-shell
+  :ensure t
+  :config
+  (when (memq window-system '(mac ns))
+    (exec-path-from-shell-initialize)))
+
+(use-package move-text
+  :ensure t
+  :bind
+  (([(meta shift up)] . move-text-up)
+   ([(meta shift down)] . move-text-down)))
+
+(use-package rainbow-delimiters
+  :ensure t)
+
+(use-package rainbow-mode
+  :ensure t
+  :config
+  (add-hook 'prog-mode-hook #'rainbow-mode))
+
+(use-package whitespace
+  :init
+  (dolist (hook '(prog-mode-hook text-mode-hook))
+    (add-hook hook #'whitespace-mode))
+  (add-hook 'before-save-hook #'whitespace-cleanup)
+  :config
+  (setq whitespace-line-column 80) ;; limit line length
+  (setq whitespace-style '(face tabs empty trailing lines-tail)))
+
+(use-package clojure-mode
+  :ensure t
+  :config
+  (add-hook 'clojure-mode-hook #'paredit-mode)
+  (add-hook 'clojure-mode-hook #'subword-mode)
+  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode))
+
+(use-package cider
+  :ensure t
+  :config
+  (setq nrepl-log-messages t)
+  (add-hook 'cider-mode-hook #'eldoc-mode)
+  (add-hook 'cider-repl-mode-hook #'eldoc-mode)
+  (add-hook 'cider-repl-mode-hook #'paredit-mode)
+  (add-hook 'cider-repl-mode-hook #'rainbow-delimiters-mode))
+
+(use-package flycheck-joker
+  :ensure t)
+
+(use-package markdown-mode
+  :ensure t
+  :mode (("\\.md\\'" . gfm-mode)
+         ("\\.markdown\\'" . gfm-mode))
+  :config
+  (setq markdown-fontify-code-blocks-natively t))
+
+(use-package adoc-mode
+  :ensure t
+  :mode "\\.adoc\\'")
+
+(use-package yaml-mode
+  :ensure t)
+
+(use-package cask-mode
+  :ensure t)
+
+(use-package company
+  :ensure t
+  :config
+  (setq company-idle-delay 0.5)
+  (setq company-show-numbers t)
+  (setq company-tooltip-limit 10)
+  (setq company-minimum-prefix-length 2)
+  (setq company-tooltip-align-annotations t)
+  ;; invert the navigation direction if the the completion popup-isearch-match
+  ;; is displayed on top (happens near the bottom of windows)
+  (setq company-tooltip-flip-when-above t)
+  (global-company-mode))
+
+(use-package hl-todo
+  :ensure t
+  :config
+  (setq hl-todo-highlight-punctuation ":")
+  (global-hl-todo-mode))
+
+(use-package zop-to-char
+  :ensure t
+  :bind (("M-z" . zop-up-to-char)
+         ("M-Z" . zop-to-char)))
+
+(use-package flyspell
+  :config
+  (when (eq system-type 'windows-nt)
+    (add-to-list 'exec-path "C:/Program Files (x86)/Aspell/bin/"))
+  (setq ispell-program-name "aspell" ; use aspell instead of ispell
+        ispell-extra-args '("--sug-mode=ultra"))
+  (add-hook 'text-mode-hook #'flyspell-mode)
+  (add-hook 'prog-mode-hook #'flyspell-prog-mode))
+
+(use-package flycheck
+  :ensure t
+  :config
+  (add-hook 'after-init-hook #'global-flycheck-mode))
+
+(use-package super-save
+  :ensure t
+  :config
+  ;; add integration with ace-window
+  (add-to-list 'super-save-triggers 'ace-window)
+  (super-save-mode +1))
+
+(use-package diff-hl
+  :ensure t
+  :config
+  (global-diff-hl-mode +1)
+  (add-hook 'dired-mode-hook 'diff-hl-dired-mode))
+
+(use-package which-key
+  :ensure t
+  :config
+  (which-key-mode +1))
+
+;; needed to tweak the matching algorithm used by ivy
+(use-package flx
+  :ensure t)
+
+(use-package ivy
+  :ensure t
+  :config
+  (ivy-mode 1)
+  (setq ivy-use-virtual-buffers t)
+  ;; use flx matching instead of the default
+  ;; see https://oremacs.com/2016/01/06/ivy-flx/ for details
+  (setq ivy-re-builders-alist
+        '((t . ivy--regex-fuzzy)))
+  (setq ivy-initial-inputs-alist nil)
+  (setq enable-recursive-minibuffers t)
+  (global-set-key (kbd "C-c C-r") 'ivy-resume)
+  (global-set-key (kbd "<f6>") 'ivy-resume))
+
+(use-package ace-window
+  :ensure t
+  :config
+  (global-set-key (kbd "s-w") 'ace-window)
+  (global-set-key [remap other-window] 'ace-window))
+
+(use-package swiper
+  :ensure t
+  :config
+  (global-set-key "\C-s" 'swiper))
+
+(use-package counsel
+  :ensure t
+  :config
+  (global-set-key (kbd "M-x") 'counsel-M-x)
+  (global-set-key (kbd "C-x C-f") 'counsel-find-file)
+  (global-set-key (kbd "<f1> f") 'counsel-describe-function)
+  (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+  (global-set-key (kbd "<f1> l") 'counsel-find-library)
+  (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+  (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+  (global-set-key (kbd "C-c g") 'counsel-git)
+  (global-set-key (kbd "C-c j") 'counsel-git-grep)
+  (global-set-key (kbd "C-c a") 'counsel-ag)
+  (global-set-key (kbd "C-x l") 'counsel-locate)
+  (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history))
+
+;; temporarily highlight changes from yanking, etc
+(use-package volatile-highlights
+  :ensure t
+  :config
+  (volatile-highlights-mode +1))
+
+;; config changes made through the customize UI will be stored here
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
+(when (file-exists-p custom-file)
+  (load custom-file))
 
 
-
-
-(provide 'init)
 ;;; init.el ends here
