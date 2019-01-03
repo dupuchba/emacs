@@ -290,8 +290,8 @@ Start `ielm' if it's not already running."
 
 (use-package avy
   :ensure t
-  :bind (("C-M-g" . avy-goto-word-or-subword-1)
-         ("C-M-S-s-g" . avy-goto-char))
+  :bind (("C-M-S-s-g" . avy-goto-word-or-subword-1)
+         ("C-M-g" . avy-goto-char))
   :config
   (setq avy-background t))
 
@@ -306,6 +306,7 @@ Start `ielm' if it's not already running."
   :ensure t
   :init
   (setq projectile-completion-system 'ivy)
+  (setq projectile-project-search-path '("~/Projects/" "~/.emacs.d"))
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
   (projectile-mode +1))
@@ -322,6 +323,8 @@ Start `ielm' if it's not already running."
 
 (use-package paredit
   :ensure t
+  :bind (("C-M-/" . paredit-forward-slurp-sexp)
+         ("C-M-]" . paredit-backward-slurp-sexp))
   :config
   (add-hook 'emacs-lisp-mode-hook #'paredit-mode)
   ;; enable in the *scratch* buffer
