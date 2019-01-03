@@ -34,6 +34,8 @@
 (add-to-list 'package-archives
 	     '("melpa-stable" . "https://stable.melpa.org/packages/"))
 
+(set-face-attribute 'default nil :height 180 :font "Fira Code")
+
 ;; keep the installed packages in elpa directory
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory))
 (package-initialize)
