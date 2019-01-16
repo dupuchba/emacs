@@ -29,10 +29,17 @@
 ;; PACKAGE SETUP ;;
 ;;;;;;;;;;;;;;;;;;;
 
+;; Comment macro always useful when trying new stuff
+(defmacro comment (&rest body)
+  nil)
+
 (require 'package)
 
 (add-to-list 'package-archives
-	     '("melpa-stable" . "https://stable.melpa.org/packages/"))
+	     '("melpa" . "https://melpa.org/packages/"))
+
+(add-to-list 'package-archives
+	     '("org" . "http://orgmode.org/elpa/"))
 
 (set-face-attribute 'default nil :height 180 :font "Fira Code")
 
@@ -72,6 +79,17 @@
 ;; create the savefile dir if it doesn't exist
 (unless (file-exists-p dupuchba-savefile-dir)
   (make-directory dupuchba-savefile-dir))
+
+(defconst dupuchba-backup-directory (expand-file-name "backup" dupuchba-savefile-dir))
+
+(unless (file-exists-p dupuchba-backup-directory)
+  (make-directory dupuchba-backup-directory))
+
+;; It's annoying when backup files ares stored in the code repo. So I
+;; setup a backupdir for all backup files
+(setq backup-directory-alist '("." . dupuchba-backup-directory))
+;; VCs backup files should not exists
+(setq vc-make-backup-files nil)
 
 ;; Set meta option and alt on darwin a.k.a Macos X
 (when (eq system-type 'darwin)
@@ -367,7 +385,7 @@ Start `ielm' if it's not already running."
     (add-hook hook #'whitespace-mode))
   (add-hook 'before-save-hook #'whitespace-cleanup)
   :config
-  (setq whitespace-line-column 80) ;; limit line length
+  (setq whitespace-line-column 180) ;; limit line length
   (setq whitespace-style '(face tabs empty trailing lines-tail)))
 
 (use-package clojure-mode
@@ -385,6 +403,9 @@ Start `ielm' if it's not already running."
   (add-hook 'cider-repl-mode-hook #'eldoc-mode)
   (add-hook 'cider-repl-mode-hook #'paredit-mode)
   (add-hook 'cider-repl-mode-hook #'rainbow-delimiters-mode))
+
+(comment (use-package fennel-mode
+           :ensure t))
 
 (use-package flycheck-joker
   :ensure t)
@@ -513,11 +534,43 @@ Start `ielm' if it's not already running."
   :config
   (volatile-highlights-mode +1))
 
+;; org-mode
+(use-package org
+  :mode (("\\.org$" . org-mode))
+  :init (add-to-list 'load-path "~/.emacs.d/elpa/org-plus-contrib-20181230/" t)
+  :ensure t
+  :config
+  (progn (define-key global-map "\C-cl" 'org-store-link)
+         (define-key global-map "\C-ca" 'org-agenda)
+         (setq org-log-done t)
+         (setq org-catch-invisible-edits nil)
+         (setq whitespace-line-column 80)
+         (setq org-agenda-files `(,(expand-file-name "~/Google Drive File Stream/My Drive/Org/inbox.org")))
+         (setq org-capture-templates `(("t" "Todo [inbox]" entry
+                                        (file+headline ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/inbox.org") "Tasks")
+                                        "* TODO %i%?")))
+         (setq org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))))
+
+(use-package org-mime
+  :ensure t)
+
+(use-package command-log-mode
+  :ensure t)
+
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
 (when (file-exists-p custom-file)
   (load custom-file))
+
+
+(comment
+
+ (autoload)
+
+
+
+ )
 
 
 ;;; init.el ends here
