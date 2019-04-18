@@ -36,10 +36,13 @@
 (require 'package)
 
 (add-to-list 'package-archives
-	     '("melpa" . "https://melpa.org/packages/"))
+	     '("org" . "http://orgmode.org/elpa/")
+             t)
+
 
 (add-to-list 'package-archives
-	     '("org" . "http://orgmode.org/elpa/"))
+	     '("melpa" . "http://melpa.milkbox.net/packages/")
+             t)
 
 (set-face-attribute 'default nil :height 180 :font "Fira Code")
 
@@ -63,6 +66,14 @@
 ;; Usefull when working on an other computer as my main one
 (setq user-full-name "Baptiste Dupuch"
       user-mail-address "baptiste@dupu.ch")
+
+
+;; Change buffer name
+(setq frame-title-format
+      '((:eval (if (buffer-file-name)
+                   (concat "File system path : " (abbreviate-file-name (buffer-file-name)))
+                 "%b"))))
+
 
 ;; Always load newest byte code
 (setq load-prefer-newer t)
