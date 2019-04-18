@@ -98,9 +98,11 @@
 
 ;; It's annoying when backup files ares stored in the code repo. So I
 ;; setup a backupdir for all backup files
-(setq backup-directory-alist '("." . dupuchba-backup-directory))
+(setq backup-directory-alist `((".*" . ,dupuchba-backup-directory)))
 ;; VCs backup files should not exists
 (setq vc-make-backup-files nil)
+(setq auto-save-file-name-transforms
+          `((".*" ,dupuchba-backup-directory t)))
 
 ;; Set meta option and alt on darwin a.k.a Macos X
 (when (eq system-type 'darwin)
@@ -277,7 +279,6 @@
          ("C-c I" . crux-find-user-init-file)
          ("C-c S" . crux-find-shell-init-file)
          ("s-r" . crux-recentf-find-file)
-         ("s-j" . crux-top-join-line)
          ("C-^" . crux-top-join-line)
          ("s-k" . crux-kill-whole-line)
          ("C-<backspace>" . crux-kill-line-backwards)
@@ -287,7 +288,6 @@
          ([(control shift return)] . crux-smart-open-line-above)
          ([remap kill-whole-line] . crux-kill-whole-line)
          ("C-c s" . crux-ispell-word-then-abbrev)))
-
 
 (use-package lisp-mode
   :config
@@ -338,6 +338,8 @@ Start `ielm' if it's not already running."
   (setq projectile-project-search-path '("~/Projects/" "~/.emacs.d"))
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (setq projectile-indexing-method 'alien)
   (projectile-mode +1))
 
 (use-package expand-region
@@ -404,7 +406,8 @@ Start `ielm' if it's not already running."
   :config
   (add-hook 'clojure-mode-hook #'paredit-mode)
   (add-hook 'clojure-mode-hook #'subword-mode)
-  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode))
+  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
+  (setq whitespace-line-column 180))
 
 (use-package cider
   :ensure t
@@ -434,6 +437,21 @@ Start `ielm' if it's not already running."
 
 (use-package yaml-mode
   :ensure t)
+
+(use-package php-mode
+  :ensure t
+  :mode "\\.php\\'")
+
+(use-package dockerfile-mode
+  :ensure t
+  :mode ("Dockerfile\\'" . dockerfile-mode))
+
+(use-package terraform-mode
+  :ensure t)
+
+(use-package company-terraform
+  :ensure t
+  :config (company-terraform-init))
 
 (use-package cask-mode
   :ensure t)
@@ -548,19 +566,81 @@ Start `ielm' if it's not already running."
 ;; org-mode
 (use-package org
   :mode (("\\.org$" . org-mode))
-  :init (add-to-list 'load-path "~/.emacs.d/elpa/org-plus-contrib-20181230/" t)
-  :ensure t
+  :ensure org-plus-contrib
+  :bind-keymap ("C-M-S-s-o" . org-mode-map)
+  :bind (:map org-mode-map
+              ("C-c a" . org-agenda)
+              ("C-c l" . org-link)
+              ("C-c c" . org-capture))
+
   :config
-  (progn (define-key global-map "\C-cl" 'org-store-link)
-         (define-key global-map "\C-ca" 'org-agenda)
+  (progn (comment (ispell-change-dictionary "francais"))
          (setq org-log-done t)
          (setq org-catch-invisible-edits nil)
          (setq whitespace-line-column 80)
-         (setq org-agenda-files `(,(expand-file-name "~/Google Drive File Stream/My Drive/Org/inbox.org")))
+         (setq org-agenda-files `(,(expand-file-name "~/Google Drive File Stream/My Drive/Org/inbox.org")
+                                  ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/gtd.org")
+                                  ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/tickler.org")))
          (setq org-capture-templates `(("t" "Todo [inbox]" entry
                                         (file+headline ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/inbox.org") "Tasks")
-                                        "* TODO %i%?")))
-         (setq org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))))
+                                        "* TODO %i%?")
+                                       ("T" "Tickler" entry
+                                        (file+headline ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/tickler.org") "Tickler")
+                                        "* %i%? \n %U")))
+         (setq org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+         (setq org-refile-targets '(("~/Google Drive File Stream/My Drive/Org/gtd.org" :maxlevel . 3)
+                                    ("~/Google Drive File Stream/My Drive/Org/someday.org" :level . 1)
+                                    ("~/Google Drive File Stream/My Drive/Org/tickler.org" :maxlevel . 2)))
+
+         (defun org/get-headline-string-element  (headline backend info)
+            (let ((prop-point (next-property-change 0 headline)))
+              (if prop-point (plist-get (text-properties-at prop-point headline) :parent))))
+
+         (defun org/ensure-latex-clearpage (headline backend info)
+                    (when (org-export-derived-backend-p backend 'latex)
+                      (let ((elmnt (org/get-headline-string-element headline backend info)))
+                        (when (member "newpage" (org-element-property :tags elmnt))
+                          (concat "\\clearpage\n" headline)))))
+
+          (add-to-list 'org-export-filter-headline-functions
+                       'org/ensure-latex-clearpage)))
+
+(use-package org-jira
+  :ensure t
+  :bind-keymap ("s-j" . org-jira-entry-mode-map)
+  :config
+  (setq jiralib-url "https://dgbirds.atlassian.net")
+  (setq org-jira-working-dir "~/Google Drive File Stream/My Drive/Legacy To Epiphany/Missions/AirFrance/Jira")
+  (setq org-jira-custom-jqls
+        '(
+          (:jql "project = 'DGB' AND component is EMPTY and statusCategory != 'Done' ORDER BY updated ASC"
+                :filename "not-done-and-no-component-issuess")
+          (:jql "project = 'DGB' AND component != 'iOS app' and statusCategory != 'Done' and issuetype = 'Bug' ORDER BY updated ASC"
+                :filename "all-opened-backend-bugs")
+          (:jql "project = 'DGB' and sprint in openSprints() ORDER BY updated ASC"
+                :filename "all-issues-in-current-sprint")
+          (:jql "project = 'DGB' and component != 'iOS app' and  sprint in openSprints() ORDER BY updated ASC"
+                :filename "all-back-end-issues-in-current-sprint")
+          (:jql "project = 'DGB' and priority = 'Highest' and statusCategory != 'Done' ORDER BY updated ASC"
+                :filename "highest-priority-not-done")
+          (:jql "project = 'DGB' and component != 'iOS app' and created <= '-60d' and statusCategory != 'Done' and status not in ('Standby', 'To analyze') ORDER BY updated ASC"
+                :filename "older-than-60-days-and-not-finished")
+          (:jql "project = 'DGB' and component != 'iOS app' and (updated <= '-30d' and updated > '-60d') and statusCategory != 'Done' and status not in ('Standby', 'To analyze') ORDER BY updated ASC"
+                :filename "older-than-30-days-and-not-finished"))))
+
+(use-package magit
+  :ensure t)
+
+
+
+(use-package ox-pandoc
+  :ensure t)
+
+(use-package tex
+  :defer t
+  :ensure auctex
+  :config
+  (setq TeX-auto-save t))
 
 (use-package org-mime
   :ensure t)
@@ -578,6 +658,9 @@ Start `ielm' if it's not already running."
 (comment
 
  (autoload)
+
+ ;; C-h-S C-h-f C-h-m
+;; M-:
 
 
 
