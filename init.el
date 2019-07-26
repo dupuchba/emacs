@@ -648,6 +648,14 @@ Start `ielm' if it's not already running."
 (use-package command-log-mode
   :ensure t)
 
+(defun kill-other-buffers ()
+  "Kill all other buffers."
+  (interactive)
+  (mapc 'kill-buffer
+        (delq (current-buffer)
+              (remove-if-not 'buffer-file-name (buffer-list)))))
+
+
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 
@@ -655,16 +663,6 @@ Start `ielm' if it's not already running."
   (load custom-file))
 
 
-(comment
-
- (autoload)
-
- ;; C-h-S C-h-f C-h-m
-;; M-:
-
-
-
- )
-
-
 ;;; init.el ends here
+(put 'narrow-to-region 'disabled nil)
+(put 'narrow-to-page 'disabled nil)
