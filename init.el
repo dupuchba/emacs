@@ -631,8 +631,6 @@ Start `ielm' if it's not already running."
 (use-package magit
   :ensure t)
 
-
-
 (use-package ox-pandoc
   :ensure t)
 
@@ -651,10 +649,11 @@ Start `ielm' if it's not already running."
 (defun kill-other-buffers ()
   "Kill all other buffers."
   (interactive)
-  (mapc 'kill-buffer
-        (delq (current-buffer)
-              (remove-if-not 'buffer-file-name (buffer-list)))))
-
+  (let ((current-buffer (current-buffer)))
+    (mapc (lambda (buff)
+            (when (not (or (minibufferp buff) (eq current-buffer buff)))
+              (kill-buffer buff)))
+          (buffer-list))))
 
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
