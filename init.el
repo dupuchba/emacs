@@ -39,16 +39,25 @@
 	     '("org" . "http://orgmode.org/elpa/")
              t)
 
+(add-to-list 'package-archives
+             (cons "melpa-stable" "https://stable.melpa.org/packages/")
+             t)
+
+(add-to-list 'package-archives (cons "gnu" "https://elpa.gnu.org/packages/"))
+
+
 
 (add-to-list 'package-archives
 	     '("melpa" . "http://melpa.milkbox.net/packages/")
              t)
 
+(package-initialize)
+
 (set-face-attribute 'default nil :height 180 :font "Fira Code")
 
 ;; keep the installed packages in elpa directory
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory))
-(package-initialize)
+
 ;; update package metadata if cache is missing
 (unless package-archive-contents
   (package-refresh-contents))
@@ -446,6 +455,10 @@ Start `ielm' if it's not already running."
   :ensure t
   :mode ("Dockerfile\\'" . dockerfile-mode))
 
+(use-package docker
+  :ensure t
+  :bind ("C-c d" . docker))
+
 (use-package terraform-mode
   :ensure t)
 
@@ -631,6 +644,10 @@ Start `ielm' if it's not already running."
 (use-package magit
   :ensure t)
 
+(use-package forge
+  :ensure t
+  :after magit)
+
 (use-package ox-pandoc
   :ensure t)
 
@@ -654,6 +671,18 @@ Start `ielm' if it's not already running."
             (when (not (or (minibufferp buff) (eq current-buffer buff)))
               (kill-buffer buff)))
           (buffer-list))))
+
+(defun copy-region-to-new-buffer ()
+  "Copy the selected region to a new editable buffer."
+  (interactive)
+  (let* ((c-buffer (current-buffer))
+        (start (if (<= (mark) (point)) (mark)))
+        (end (if (<= (mark) (point)) (point)))
+        (n-buffer (generate-new-buffer "ohh")))
+   (save-excursion
+     (with-current-buffer n-buffer
+       (insert-buffer-substring c-buffer start end)
+       (display-buffer n-buffer )))))
 
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
