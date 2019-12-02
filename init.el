@@ -455,6 +455,12 @@ Start `ielm' if it's not already running."
   :ensure t
   :mode ("Dockerfile\\'" . dockerfile-mode))
 
+(use-package emmet-mode
+  :ensure t
+  :config
+  (add-hook 'sgml-mode-hook 'emmet-mode)
+  (add-hook 'css-mode-hook 'emmet-mode))
+
 (use-package docker
   :ensure t
   :bind ("C-c d" . docker))

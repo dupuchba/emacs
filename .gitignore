@@ -20,3 +20,10 @@ session*
 tramp
 /var/pcache
 custom.el
+/.mc-lists.el
+/.org-id-locations
+/bookmarks
+/forge-database.sqlite
+/projectile.cache
+/request/curl-cookie-jar
+/transient/history.el
