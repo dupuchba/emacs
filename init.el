@@ -213,7 +213,8 @@
 ;; highlight the current line
 (use-package hl-line
   :config
-  (global-hl-line-mode +1))
+  (global-hl-line-mode +1)
+  (set-face-background hl-line-face "#808080"))
 
 (use-package abbrev
   :config
@@ -472,6 +473,39 @@ Start `ielm' if it's not already running."
   :ensure t
   :config (company-terraform-init))
 
+(use-package js2-refactor
+  :ensure t)
+
+(use-package xref-js2
+  :ensure t)
+
+(use-package company-tern
+  :ensure t
+  :config
+  (add-to-list 'company-backends 'company-tern)
+  (add-hook 'js2-mode-hook (lambda ()
+                             (tern-mode)
+                             (company-mode)))
+  (define-key tern-mode-keymap (kbd "M-.") nil)
+  (define-key tern-mode-keymap (kbd "M-,") nil))
+
+(use-package indium
+  :ensure t
+  :config
+  (add-hook 'js-mode-hook #'indium-interaction-mode))
+
+(use-package js2-mode
+  :ensure t
+  :mode ("\\.js\\'" . js2-mode)
+  :config
+  (add-hook 'js2-mode-hook #'js2-refactor-mode)
+  (js2r-add-keybindings-with-prefix "C-c C-r")
+  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+  (define-key js2-mode-map (kbd "C-k") #'js2r-kill)
+  (define-key js-mode-map (kbd "M-.") nil)
+  (add-hook 'js2-mode-hook (lambda ()
+                             (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
+
 (use-package cask-mode
   :ensure t)
 
@@ -594,6 +628,8 @@ Start `ielm' if it's not already running."
 
   :config
   (progn (comment (ispell-change-dictionary "francais"))
+         ;;@TODO: gerer les hook sur les input-method
+         (comment (set-input-method 'french-postfix))
          (setq org-log-done t)
          (setq org-catch-invisible-edits nil)
          (setq whitespace-line-column 80)
@@ -606,46 +642,48 @@ Start `ielm' if it's not already running."
                                        ("T" "Tickler" entry
                                         (file+headline ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/tickler.org") "Tickler")
                                         "* %i%? \n %U")))
-         (setq org-todo-keywords '((sequence "TODO(t)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
-         (setq org-refile-targets '(("~/Google Drive File Stream/My Drive/Org/gtd.org" :maxlevel . 3)
+         (setq org-todo-keywords '((sequence "TODO(t)" "NEXT ITEM(i)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+         (setq org-refile-targets '(("~/Google Drive File Stream/My Drive/Org/gtd.org" :maxlevel . 4)
                                     ("~/Google Drive File Stream/My Drive/Org/someday.org" :level . 1)
                                     ("~/Google Drive File Stream/My Drive/Org/tickler.org" :maxlevel . 2)))
+         (setq org-agenda-custom-commands
+               '(("o" "At the office" tags-todo "@office"
+                  ((org-agenda-overriding-header "Office")
+                   (org-agenda-skip-function #'my-org-agenda-skill-all-siblings-but-first)))
+                 ("v" "Holidays" tags-todo "vacances"
+                  ((org-agenda-overriding-header "Vacances")))
+                 ("t" "This Week" tags-todo "thisweek"
+                  ((org-agenda-overriding-header "Todo This Week")))))
+
+         (defun org-current-is-todo ()
+           (string= "TODO" (org-get-todo-state)))
+
+         (defun my-org-agenda-skill-all-siblings-but-first ()
+           "Skip all but the first non-done entry."
+           (let (should-skip-entry)
+             (unless (org-current-is-todo)
+               (setq should-skip-entry t))
+             (save-excursion
+               (while (and (not should-skip-entry)
+                           (org-goto-sibling t))
+                 (when (org-current-is-todo)
+                   (setq should-skip-entry t))))
+             (when should-skip-entry
+               (or (outline-next-heading)
+                   (goto-char (point-max))))))
 
          (defun org/get-headline-string-element  (headline backend info)
-            (let ((prop-point (next-property-change 0 headline)))
-              (if prop-point (plist-get (text-properties-at prop-point headline) :parent))))
+           (let ((prop-point (next-property-change 0 headline)))
+             (if prop-point (plist-get (text-properties-at prop-point headline) :parent))))
 
          (defun org/ensure-latex-clearpage (headline backend info)
-                    (when (org-export-derived-backend-p backend 'latex)
-                      (let ((elmnt (org/get-headline-string-element headline backend info)))
-                        (when (member "newpage" (org-element-property :tags elmnt))
-                          (concat "\\clearpage\n" headline)))))
+           (when (org-export-derived-backend-p backend 'latex)
+             (let ((elmnt (org/get-headline-string-element headline backend info)))
+               (when (member "newpage" (org-element-property :tags elmnt))
+                 (concat "\\clearpage\n" headline)))))
 
-          (add-to-list 'org-export-filter-headline-functions
-                       'org/ensure-latex-clearpage)))
-
-(use-package org-jira
-  :ensure t
-  :bind-keymap ("s-j" . org-jira-entry-mode-map)
-  :config
-  (setq jiralib-url "https://dgbirds.atlassian.net")
-  (setq org-jira-working-dir "~/Google Drive File Stream/My Drive/Legacy To Epiphany/Missions/AirFrance/Jira")
-  (setq org-jira-custom-jqls
-        '(
-          (:jql "project = 'DGB' AND component is EMPTY and statusCategory != 'Done' ORDER BY updated ASC"
-                :filename "not-done-and-no-component-issuess")
-          (:jql "project = 'DGB' AND component != 'iOS app' and statusCategory != 'Done' and issuetype = 'Bug' ORDER BY updated ASC"
-                :filename "all-opened-backend-bugs")
-          (:jql "project = 'DGB' and sprint in openSprints() ORDER BY updated ASC"
-                :filename "all-issues-in-current-sprint")
-          (:jql "project = 'DGB' and component != 'iOS app' and  sprint in openSprints() ORDER BY updated ASC"
-                :filename "all-back-end-issues-in-current-sprint")
-          (:jql "project = 'DGB' and priority = 'Highest' and statusCategory != 'Done' ORDER BY updated ASC"
-                :filename "highest-priority-not-done")
-          (:jql "project = 'DGB' and component != 'iOS app' and created <= '-60d' and statusCategory != 'Done' and status not in ('Standby', 'To analyze') ORDER BY updated ASC"
-                :filename "older-than-60-days-and-not-finished")
-          (:jql "project = 'DGB' and component != 'iOS app' and (updated <= '-30d' and updated > '-60d') and statusCategory != 'Done' and status not in ('Standby', 'To analyze') ORDER BY updated ASC"
-                :filename "older-than-30-days-and-not-finished"))))
+         (add-to-list 'org-export-filter-headline-functions
+                      'org/ensure-latex-clearpage)))
 
 (use-package magit
   :ensure t)
@@ -668,6 +706,12 @@ Start `ielm' if it's not already running."
 
 (use-package command-log-mode
   :ensure t)
+
+(use-package multiple-cursors
+  :ensure t
+  :config
+  (global-set-key (kbd "C-c C->") 'mc/mark-next-like-this-word)
+  (global-set-key (kbd "C-c C-/") 'mc/mark-all-words-like-this))
 
 (defun kill-other-buffers ()
   "Kill all other buffers."
