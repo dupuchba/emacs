@@ -148,6 +148,8 @@
 (global-linum-mode t)
 (column-number-mode t)
 (size-indication-mode t)
+(global-set-key (kbd "M-n") #'scroll-up-line)
+(global-set-key (kbd "M-p") #'scroll-down-line)
 
 ;; enable y/n answers
 (fset 'yes-or-no-p 'y-or-n-p)
