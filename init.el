@@ -1,4 +1,4 @@
- ;;; init.el --- Baptiste Dupuch init file            -*- lexical-binding: t; -*-
+;;; init.el --- Baptiste Dupuch init file            -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2019  Baptiste Dupuch
 
@@ -422,6 +422,15 @@ Start `ielm' if it's not already running."
   (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
   (setq whitespace-line-column 180))
 
+(use-package inf-clojure
+  :ensure t
+  :config
+  (setq whitespace-line-column 180))
+
+(defun cljs-webpack-repl ()
+  (interactive)
+  (inf-clojure "clj -m cljs.main -co dev.cljs.edn -v -c -r"))
+
 (use-package cider
   :ensure t
   :config
@@ -508,6 +517,9 @@ Start `ielm' if it's not already running."
   (define-key js-mode-map (kbd "M-.") nil)
   (add-hook 'js2-mode-hook (lambda ()
                              (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))))
+
+(use-package dart-mode
+  :ensure t)
 
 (use-package cask-mode
   :ensure t)
@@ -645,7 +657,7 @@ Start `ielm' if it's not already running."
                                        ("T" "Tickler" entry
                                         (file+headline ,(expand-file-name "~/Google Drive File Stream/My Drive/Org/tickler.org") "Tickler")
                                         "* %i%? \n %U")))
-         (setq org-todo-keywords '((sequence "TODO(t)" "NEXT ITEM(i)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
+         (setq org-todo-keywords '((sequence "TODO(t)" "MUST DO TODAY(m)" "WAITING(w)" "|" "DONE(d)" "CANCELLED(c)")))
          (setq org-refile-targets '(("~/Google Drive File Stream/My Drive/Org/gtd.org" :maxlevel . 4)
                                     ("~/Google Drive File Stream/My Drive/Org/someday.org" :level . 1)
                                     ("~/Google Drive File Stream/My Drive/Org/tickler.org" :maxlevel . 2)))
@@ -736,6 +748,10 @@ Start `ielm' if it's not already running."
      (with-current-buffer n-buffer
        (insert-buffer-substring c-buffer start end)
        (display-buffer n-buffer )))))
+
+(defun describe-last-function()
+  (interactive)
+  (describe-function last-command))
 
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
