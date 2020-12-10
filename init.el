@@ -45,10 +45,8 @@
 
 (add-to-list 'package-archives (cons "gnu" "https://elpa.gnu.org/packages/"))
 
-
-
 (add-to-list 'package-archives
-	     '("melpa" . "http://melpa.milkbox.net/packages/")
+             '("melpa" . "http://melpa.org/packages/")
              t)
 
 (package-initialize)
@@ -144,10 +142,10 @@
       scroll-preserve-screen-position 1)
 
 ;; mode line settings
-(line-number-mode t)
-(global-linum-mode t)
-(column-number-mode t)
-(size-indication-mode t)
+(comment  (line-number-mode nil)
+          (global-linum-mode nil)
+          (column-number-mode nil)
+          (size-indication-mode t))
 (global-set-key (kbd "M-n") #'scroll-up-line)
 (global-set-key (kbd "M-p") #'scroll-down-line)
 
@@ -207,6 +205,17 @@
 
 (require 'use-package)
 (setq use-package-verbose t)
+
+;; Hide minor modes from modeline
+(use-package rich-minority
+  :ensure t
+  :config
+  (rich-minority-mode 1)
+  (setf rm-blacklist ""))
+
+;; Set colors to distinguish between active and inactive windows
+(set-face-attribute 'mode-line nil :background "azure1")
+(set-face-attribute 'mode-line-inactive nil :background nil)
 
 ;;; built-in packages
 (use-package paren
@@ -325,10 +334,27 @@ Start `ielm' if it's not already running."
   (add-hook 'ielm-mode-hook #'rainbow-delimiters-mode))
 
 ;;; third-party packages
-(use-package zenburn-theme
+(comment (use-package zenburn-theme
+           :ensure t
+           :config
+           (load-theme 'zenburn t))
+
+         (use-package zerodark-theme
+           :ensure t
+           :config
+           (load-theme 'zerodark t)
+           (zerodark-setup-modeline-format))
+         (use-package plan9-theme
+           :ensure t
+           :config
+           (load-theme 'plan9 t)))
+
+(use-package twilight-bright-theme
   :ensure t
   :config
-  (load-theme 'zenburn t))
+  (load-theme 'twilight-bright t))
+
+
 
 (use-package avy
   :ensure t
@@ -347,7 +373,7 @@ Start `ielm' if it's not already running."
 (use-package projectile
   :ensure t
   :init
-  (setq projectile-completion-system 'ivy)
+  (setq projectile-completion-system 'default)
   (setq projectile-project-search-path '("~/Projects/" "~/.emacs.d"))
   :config
   (define-key projectile-mode-map (kbd "s-p") 'projectile-command-map)
@@ -584,46 +610,82 @@ Start `ielm' if it's not already running."
 (use-package flx
   :ensure t)
 
-(use-package ivy
-  :ensure t
-  :config
-  (ivy-mode 1)
-  (setq ivy-use-virtual-buffers t)
-  ;; use flx matching instead of the default
-  ;; see https://oremacs.com/2016/01/06/ivy-flx/ for details
-  (setq ivy-re-builders-alist
-        '((t . ivy--regex-fuzzy)))
-  (setq ivy-initial-inputs-alist nil)
-  (setq enable-recursive-minibuffers t)
-  (global-set-key (kbd "C-c C-r") 'ivy-resume)
-  (global-set-key (kbd "<f6>") 'ivy-resume))
-
 (use-package ace-window
   :ensure t
   :config
+  (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+  (setq aw-ignore-current t)
   (global-set-key (kbd "s-w") 'ace-window)
   (global-set-key [remap other-window] 'ace-window))
 
-(use-package swiper
+(use-package selectrum
   :ensure t
   :config
-  (global-set-key "\C-s" 'swiper))
+  (selectrum-mode +1)
+  (setq selectrum-num-candidates-displayed 20)
+  (let ((class '((class color) (min-colors 89))))
+    (custom-theme-set-faces
+     'zerodark
+     `(selectrum-current-candidate
+       ((,class (:background "azure1"
+                             :weight bold
+                             ))))
+     `(selectrum-primary-highlight ((,class (:foreground "#da8548"))))
+     `(selectrum-secondary-highlight ((,class (:foreground "#98be65")))))))
 
-(use-package counsel
+(use-package selectrum-prescient
   :ensure t
   :config
-  (global-set-key (kbd "M-x") 'counsel-M-x)
-  (global-set-key (kbd "C-x C-f") 'counsel-find-file)
-  (global-set-key (kbd "<f1> f") 'counsel-describe-function)
-  (global-set-key (kbd "<f1> v") 'counsel-describe-variable)
-  (global-set-key (kbd "<f1> l") 'counsel-find-library)
-  (global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
-  (global-set-key (kbd "<f2> u") 'counsel-unicode-char)
-  (global-set-key (kbd "C-c g") 'counsel-git)
-  (global-set-key (kbd "C-c j") 'counsel-git-grep)
-  (global-set-key (kbd "C-c a") 'counsel-ag)
-  (global-set-key (kbd "C-x l") 'counsel-locate)
-  (define-key minibuffer-local-map (kbd "C-r") 'counsel-minibuffer-history))
+  ;; to make sorting and filtering more intelligent
+  (selectrum-prescient-mode +1)
+  ;; to save your command history on disk, so the sorting gets more
+  ;; intelligent over time
+  (prescient-persist-mode +1))
+
+(use-package ctrlf
+  :ensure t
+  :config
+  (ctrlf-mode +1))
+
+;; Example configuration for Consult
+(use-package consult
+  :ensure t
+  ;; Replace bindings. Lazily loaded due to use-package.
+  :bind (("C-c o" . consult-outline)
+         ("C-x b" . consult-buffer)
+         ("C-x 4 b" . consult-buffer-other-window)
+         ("C-x 5 b" . consult-buffer-other-frame)
+         ("C-x r x" . consult-register)
+         ("C-x r b" . consult-bookmark)
+         ("M-g o" . consult-outline) ;; "M-s o" is a good alternative
+         ("M-g m" . consult-mark)    ;; "M-s m" is a good alternative
+         ("M-g l" . consult-line)    ;; "M-s l" is a good alternative
+         ("M-s m" . consult-multi-occur)
+         ("M-y" . consult-yank-pop)
+         ("<help> a" . consult-apropos))
+
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+
+  ;; Replace functions (consult-multi-occur is a drop-in replacement)
+  (fset 'multi-occur #'consult-multi-occur)
+
+  ;; Configure other variables and modes in the :config section, after lazily loading the package
+  :config
+
+  ;; Optionally enable previews. Note that individual previews can be disabled
+  ;; via customization variables.
+  (consult-preview-mode))
+
+;; Optionally' enable richer annotations using the Marginalia package
+(use-package marginalia
+  :ensure t
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
 
 ;; temporarily highlight changes from yanking, etc
 (use-package volatile-highlights
@@ -741,17 +803,37 @@ Start `ielm' if it's not already running."
   "Copy the selected region to a new editable buffer."
   (interactive)
   (let* ((c-buffer (current-buffer))
-        (start (if (<= (mark) (point)) (mark)))
-        (end (if (<= (mark) (point)) (point)))
-        (n-buffer (generate-new-buffer "ohh")))
-   (save-excursion
-     (with-current-buffer n-buffer
-       (insert-buffer-substring c-buffer start end)
-       (display-buffer n-buffer )))))
+         (start (if (<= (mark) (point)) (mark) (point)))
+         (end (if (<= (mark) (point)) (point) (mark)))
+         (n-buffer (generate-new-buffer "ohh"))
+         (c-mode major-mode))
+    (save-excursion
+      (with-current-buffer n-buffer
+        (insert-buffer-substring c-buffer start end)
+        (display-buffer n-buffer)
+        (funcall c-mode)))))
 
 (defun describe-last-function()
   (interactive)
   (describe-function last-command))
+
+(defun resize-window ()
+  "Awesome function that creates temp keymaps for resizing windows."
+  (interactive)
+  (set-transient-map
+   (let ((map (make-sparse-keymap)))
+     (define-key map (kbd "<right>") 'shrink-window-horizontally)
+     (define-key map (kbd "<left>") 'enlarge-window-horizontally)
+     (define-key map (kbd "<up>") 'shrink-window)
+     (define-key map (kbd "<down>") 'enlarge-window)
+     (define-key map (kbd "S-<right>") (lambda () (interactive) (shrink-window-horizontally 10)))
+     (define-key map (kbd "S-<left>") (lambda () (interactive) (enlarge-window-horizontally 10)))
+     (define-key map (kbd "S-<up>") (lambda () (interactive) (shrink-window 10)))
+     (define-key map (kbd "S-<down>") (lambda () (interactive) (enlarge-window 10)))
+     map)
+   t))
+
+(global-set-key (kbd "C-x C-<up> C-<up>") 'resize-window)
 
 ;; config changes made through the customize UI will be stored here
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
