@@ -51,7 +51,9 @@
 
 (package-initialize)
 
-(set-face-attribute 'default nil :height 180 :font "Fira Code")
+(set-face-attribute 'default nil :height 180)
+
+(comment (:font "Fira Code"))
 
 ;; keep the installed packages in elpa directory
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory))
@@ -347,14 +349,14 @@ Start `ielm' if it's not already running."
          (use-package plan9-theme
            :ensure t
            :config
-           (load-theme 'plan9 t)))
+           (load-theme 'plan9 t))
 
-(use-package twilight-bright-theme
-  :ensure t
-  :config
-  (load-theme 'twilight-bright t))
+         (use-package twilight-bright-theme
+           :ensure t
+           :config
+           (load-theme 'twilight-bright t)))
 
-
+(load-theme 'tsdh-light)
 
 (use-package avy
   :ensure t
@@ -446,16 +448,14 @@ Start `ielm' if it's not already running."
   (add-hook 'clojure-mode-hook #'paredit-mode)
   (add-hook 'clojure-mode-hook #'subword-mode)
   (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
-  (setq whitespace-line-column 180))
+  (setq whitespace-line-column 180)
+  (setq comment-indent-function (lambda () (calculate-lisp-indent)))
+  (setq clojure-indent-style 'always-indent))
 
 (use-package inf-clojure
   :ensure t
   :config
   (setq whitespace-line-column 180))
-
-(defun cljs-webpack-repl ()
-  (interactive)
-  (inf-clojure "clj -m cljs.main -co dev.cljs.edn -v -c -r"))
 
 (use-package cider
   :ensure t
@@ -593,7 +593,9 @@ Start `ielm' if it's not already running."
   :config
   ;; add integration with ace-window
   (add-to-list 'super-save-triggers 'ace-window)
-  (super-save-mode +1))
+  (super-save-mode +1)
+  (setq auto-save-default nil)
+  (setq super-save-exclude '(".cljd")))
 
 (use-package diff-hl
   :ensure t
@@ -625,7 +627,7 @@ Start `ielm' if it's not already running."
   (setq selectrum-num-candidates-displayed 20)
   (let ((class '((class color) (min-colors 89))))
     (custom-theme-set-faces
-     'zerodark
+     'tsdh-light
      `(selectrum-current-candidate
        ((,class (:background "azure1"
                              :weight bold
@@ -790,6 +792,9 @@ Start `ielm' if it's not already running."
   (global-set-key (kbd "C-c C->") 'mc/mark-next-like-this-word)
   (global-set-key (kbd "C-c C-/") 'mc/mark-all-words-like-this))
 
+(use-package swift-mode
+  :ensure t)
+
 (defun kill-other-buffers ()
   "Kill all other buffers."
   (interactive)
@@ -845,3 +850,29 @@ Start `ielm' if it's not already running."
 ;;; init.el ends here
 (put 'narrow-to-region 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
+
+;; easier to cycle through mark-ring
+(setq mark-ring-max 6)
+(setq global-mark-ring-max 6)
+
+(defun xah-pop-local-mark-ring ()
+  "Move cursor to last mark position of current buffer.
+Call this repeatedly will cycle all positions in `mark-ring'.
+URL `http://ergoemacs.org/emacs/emacs_jump_to_previous_position.html'
+Version 2016-04-04"
+  (interactive)
+  (set-mark-command t))
+
+(defun bdupuch-clear-local-mark-ring ()
+  (interactive)
+  (with-current-buffer (current-buffer)
+    (setq mark-ring ())))
+
+(defun bdupuch-clear-global-mark-ring ()
+  (interactive)
+  (setq global-mark-ring nil))
+
+(global-set-key (kbd "<f1>") #'pop-global-mark)
+(global-set-key (kbd "<f2>") #'xah-pop-local-mark-ring)
+(global-set-key (kbd "<f3>") #'bdupuch-clear-global-mark-ring)
+(global-set-key (kbd "<f4>") #'bdupuch-clear-local-mark-ring)
